@@ -1,0 +1,50 @@
+# osinfo ver. 1.1
+# Author: Daniel Debny
+
+USER=`whoami`
+HOSTNAME=`uname -n`
+IP=`ip route get 8.8.8.8 | awk '/src/ { print $7 }'`
+USERS=`users | xargs -n1 echo | sort -u | xargs echo`
+SUUSERS=`who | sort -k2 > ~/.whoresult | pgrep -x su | xargs -i ps hu -p{} | awk '{printf $7 " ";for (i=11; i<=NF; i++) printf $i " "; printf "\n"}' | sort -k1 | join -1 2 -2 1 $(dir ~/.whoresult) - | awk '{print $2  "("$8")"}' | sed -e "s|()|(root)|g" | sort | uniq | xargs echo`
+ROOT_FREE=`df -Ph | grep -w "/" | awk '{print $4}' | awk 'NR==1{print $1}'`
+ROOT_PERC=`df -Ph | grep -w "/" | awk '{print $3}' | awk 'NR==1{print $1}'`
+ROOT_TOTA=`df -Ph | grep -w "/" | awk '{print $2}' | awk 'NR==1{print $1}'`
+PROCESSOR_NAME=`grep "model name" /proc/cpuinfo | cut -d ' ' -f3- | awk {'print $0'} | head -1`
+PROCESSOR_COUNT=`grep -ioP 'processor\t:' /proc/cpuinfo | wc -l`
+MEMORY1=`free -t -m | grep "Mem" | awk '{print $3" MB";}'`
+MEMORY2=`cat /proc/meminfo | grep MemTotal | awk '{print $2}' | awk '{ byte =$1 /1024; print byte " MB" }' | cut -f1 -d "." | awk '{print $1" MB";}'`
+MEMORY3=`cat /proc/meminfo | grep MemAvailable | awk '{print $2}' | awk '{ byte =$1 /1024; print byte " MB" }' | cut -f1 -d "." | awk '{print $1" MB";}'`
+PSA=`ps -Afl | wc -l`
+
+#System uptime
+uptime=`cat /proc/uptime | cut -f1 -d.`
+upDays=$((uptime/60/60/24))
+upHours=$((uptime/60/60%24))
+upMins=$((uptime/60%60))
+upSecs=$((uptime%60))
+
+#System load
+LOAD1=`cat /proc/loadavg | awk {'print $1'}`
+LOAD5=`cat /proc/loadavg | awk {'print $2'}`
+LOAD15=`cat /proc/loadavg | awk {'print $3'}`
+
+COLOR_COLUMN="\e[1m-"
+COLOR_VALUE="\e[31m"
+RESET_COLORS="\e[0m"
+
+echo -e "
+ $COLOR_COLUMN Hostname / IP$RESET_COLORS.......: $COLOR_VALUE $HOSTNAME / $IP $RESET_COLORS
+ $COLOR_COLUMN Release$RESET_COLORS.............: $COLOR_VALUE `cat /etc/os-release | grep -w "PRETTY_NAME" | cut -c14-50 | tr -d '"'` $RESET_COLORS
+ $COLOR_COLUMN Users$RESET_COLORS...............: $COLOR_VALUE Currently `echo $USERS | wc -w` user(s) logged on: `echo $USERS` $RESET_COLORS
+ $COLOR_COLUMN Users with su $RESET_COLORS......: $COLOR_VALUE Currently `echo $SUUSERS | wc -w` user(s) using "su -": `echo $SUUSERS` $RESET_COLORS
+===========================================================================
+ $COLOR_COLUMN Current user$RESET_COLORS........: $COLOR_VALUE $USER $RESET_COLORS
+ $COLOR_COLUMN CPU$RESET_COLORS.................: $COLOR_VALUE $PROCESSOR_NAME ($PROCESSOR_COUNT$W vCPU) $RESET_COLORS
+ $COLOR_COLUMN Load$RESET_COLORS................: $COLOR_VALUE $LOAD1, $LOAD5, $LOAD15 $RESET_COLORS
+ $COLOR_COLUMN Memory used$RESET_COLORS.........: $COLOR_VALUE $MEMORY1 / $MEMORY2 ($MEMORY3) remaining $RESET_COLORS
+ $COLOR_COLUMN Processes$RESET_COLORS...........: $COLOR_VALUE $PSA running $RESET_COLORS
+ $COLOR_COLUMN System uptime$RESET_COLORS.......: $COLOR_VALUE $upDays days $upHours hours $upMins minutes $upSecs seconds $RESET_COLORS
+ $COLOR_COLUMN Disk space /$RESET_COLORS........: $COLOR_VALUE $ROOT_PERC of $ROOT_TOTA ($ROOT_FREE) remaining $RESET_COLORS
+"
+
+rm ~/.whoresult
