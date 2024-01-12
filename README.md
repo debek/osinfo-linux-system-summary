@@ -1,3 +1,6 @@
+### OUTDATED and no longer supported:
+New and better project: https://github.com/debek/osmon
+
 ## osinfo
 
 This script can be run manually or automatically after every reboot.
